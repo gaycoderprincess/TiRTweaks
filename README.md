@@ -19,6 +19,7 @@ Includes a widescreen fix, increased shadow resolution, splash screen skip, and 
 - Skips the splash screens and intro video, resulting in the game getting to the main menu in around 1-2 seconds from startup
 - Fixes the stretched view on aspect ratios other than 4:3
 - Fixes the stretched HUD on aspect ratios other than 4:3 (WIP, unfinished)
+- Adds letterboxing to splash screens and the intro video instead of stretching it
 - Makes the game use the monitor resolution without having to edit syscfg.ini
 - Increases the resolution of car shadows
 - Re-enables 2 unused splash screens at startup
