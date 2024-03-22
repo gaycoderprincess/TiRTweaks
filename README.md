@@ -9,6 +9,7 @@ Includes a widescreen fix, increased shadow resolution, splash screen skip, and 
 
 ## Installation
 
+- Make sure you have the Nestle Edition v1.3 of the game, as this is the only version this plugin is compatible with. (exe size of 1366016 bytes)
 - Plop the files into your game folder, edit `TIRTweaks_gcp.toml` to change the options to your liking.
 - Enjoy, nya~ :3
 
