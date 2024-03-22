@@ -10,7 +10,9 @@ void GetDesktopResolution(int& horizontal, int& vertical) {
 	vertical = desktop.bottom;
 }
 
-int nResX, nResY;
+int nResX, nResY, nResX43;
+double fDisplayAspect = 0;
+
 void ForceResolution() {
 	*(int*)0x5569F0 = nResX;
 	*(int*)0x5569F4 = nResY;
@@ -49,7 +51,7 @@ void FOVScalingFix() {
 	}
 
 	double fOrigAspect = 3.0 / 4.0;
-	double fNewAspect = (double)nResY / (double)nResX;
+	double fNewAspect = 1.0 / fDisplayAspect;
 	double fMultipliedAspect = fOrigAspect / fNewAspect;
 
 	pFOV->fFOVX = atan2(tan(fov * 0.5) * fMultipliedAspect, 1.0) * 2.0;
@@ -89,7 +91,7 @@ double __stdcall ScreenResolutionPatch(float a1) {
 	// hack for fullscreen sprites to stay fullscreen
 	if (a1 == 640.0f) return ret;
 
-	auto aspect = (double)nResX / (double)nResY;
+	auto aspect = fDisplayAspect;
 	auto origAspect = 4.0 / 3.0;
 	ret *= origAspect;
 	ret /= aspect;
@@ -101,7 +103,7 @@ int ScreenResolutionPatch2_RetValue = 0;
 // a1 appears to be some sort of replacement struct to return for this, but it doesn't actually ever seem to be used
 void __fastcall ScreenResolutionPatch2(int a1) {
 	auto ret = *(int*)0x556A48;
-	auto aspect = (double)nResX / (double)nResY;
+	auto aspect = fDisplayAspect;
 	auto origAspect = 4.0 / 3.0;
 	ret *= origAspect;
 	ret /= aspect;
@@ -143,6 +145,30 @@ void __attribute__((naked)) FullSplashesASM() {
 	);
 }
 
+float fLetterboxLeft, fLetterboxRight;
+float fResY;
+
+uintptr_t MovieLetterboxPatch_RetAddress = 0x424880;
+void __attribute__((naked)) MovieLetterboxASM() {
+	__asm__ (
+		"mov edi, %2\n\t"
+		"push edi\n\t"
+		"mov edi, %1\n\t"
+		"push edi\n\t"
+		"push 0\n\t"
+		"mov edi, %0\n\t"
+		"push edi\n\t"
+		"jmp %3\n\t"
+			:
+			:  "m" (fLetterboxLeft), "m" (fLetterboxRight), "m" (fResY), "m" (MovieLetterboxPatch_RetAddress)
+	);
+}
+
+auto DrawSplashScreen = (void(__stdcall*)(float, float, float, float, void*, int))0x41A440;
+void __stdcall SplashScreenLetterboxPatch(float a1, float a2, float a3, float a4, void* a5, int a6) {
+	DrawSplashScreen(fLetterboxLeft, a2, fLetterboxRight, a4, a5, a6);
+}
+
 BOOL WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
 	switch( fdwReason ) {
 		case DLL_PROCESS_ATTACH: {
@@ -152,14 +178,23 @@ BOOL WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
 			bool bSkipIntro = config["main"]["skip_intro"].value_or(false);
 			bool bFixScaling = config["main"]["fix_scaling"].value_or(true);
 			bool bHUDPatches = config["main"]["fix_hud"].value_or(false);
+			bool bSplashAndMoviePatches = config["main"]["letterbox_movies"].value_or(true);
 			int nShadowResolution = config["extras"]["shadow_res"].value_or(128);
 			bool bFullSplash = config["extras"]["full_splash"].value_or(false);
 			nResX = config["extras"]["res_x"].value_or(0);
 			nResY = config["extras"]["res_y"].value_or(0);
+			fDisplayAspect = config["extras"]["aspect_ratio"].value_or(0.0f);
 
 			// default to desktop resolution
 			if (nResX <= 0 || nResY <= 0) {
 				GetDesktopResolution(nResX, nResY);
+			}
+
+			nResX43 = nResY * (4.0 / 3.0);
+			fResY = nResY;
+
+			if (fDisplayAspect <= 0) {
+				fDisplayAspect = (double)nResX / (double)nResY;
 			}
 
 			if (bNoCD) {
@@ -176,6 +211,9 @@ BOOL WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
 
 			if (bFixScaling) {
 				NyaHookLib::PatchRelative(NyaHookLib::JMP, 0x424973, &FOVScalingASM);
+
+				// adjust draw distance to scale with ratio, doesn't seem to work
+				//NyaHookLib::Patch(0x4ACAA9 + 2, &fDisplayAspect);
 			}
 
 			NyaHookLib::Patch(0x4ADF26 + 1, nShadowResolution);
@@ -200,6 +238,15 @@ BOOL WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
 				NyaHookLib::Patch(0x44BC29, 2.5f);
 			}
 
+			if (bSplashAndMoviePatches) {
+				double fLetterboxMultiplier = (nResX * ((4.0 / 3.0) / fDisplayAspect) * 0.5);
+				fLetterboxLeft = nResX * 0.5 - fLetterboxMultiplier;
+				fLetterboxRight = nResX * 0.5 + fLetterboxMultiplier;
+				NyaHookLib::PatchRelative(NyaHookLib::CALL, 0x4AF621, &SplashScreenLetterboxPatch);
+
+				NyaHookLib::PatchRelative(NyaHookLib::JMP, 0x424864, &MovieLetterboxASM);
+			}
+
 			if (bHUDPatches) {
 				// sprites
 				NyaHookLib::PatchRelative(NyaHookLib::CALL, 0x41BE21, &ScreenResolutionPatch);
@@ -215,6 +262,8 @@ BOOL WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
 				NyaHookLib::PatchRelative(NyaHookLib::CALL, 0x4D97D7, &ScreenResolutionPatch);
 				NyaHookLib::PatchRelative(NyaHookLib::CALL, 0x4D9927, &ScreenResolutionPatch);
 				NyaHookLib::PatchRelative(NyaHookLib::CALL, 0x4D98AD, &ScreenResolution2ASM);
+				NyaHookLib::Patch(0x4D9D1A, &nResX43);
+				NyaHookLib::Patch(0x4D9D2A, &nResX43);
 
 				// speedo
 				// speed number size
