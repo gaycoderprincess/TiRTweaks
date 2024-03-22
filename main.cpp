@@ -86,6 +86,9 @@ double __stdcall ScreenResolutionPatch(float a1) {
 
 	auto ret = (*(int*)0x556A48 * (1.0 / 640.0) * a1);
 
+	// hack for fullscreen sprites to stay fullscreen
+	if (a1 == 640.0f) return ret;
+
 	auto aspect = (double)nResX / (double)nResY;
 	auto origAspect = 4.0 / 3.0;
 	ret *= origAspect;
