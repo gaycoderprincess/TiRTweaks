@@ -1,0 +1,15 @@
+# Total Immersion Racing patch by Hana @gaycoderprincess
+# enjoy, nya~ :3
+
+[main]
+no_cd = true			# Disable the CD check on startup
+no_videos = false		# Disable all videos, unstable but can fix some crashes on wine/proton, only use if you know what you're doing!
+skip_intro = false		# Skip intros and splash screens
+fix_scaling = true		# Fix stretched view
+fix_hud = true			# Fix stretched hud, WIP, breaks menus
+
+[extras]
+res_x = 0			# Horizontal screen resolution, use 0 to autodetect
+res_y = 0			# Vertical screen resolution, use 0 to autodetect
+shadow_res = 1024		# 128x by default
+full_splash = false		# Enable 2 unused extra splash screens on startup
