@@ -30,6 +30,7 @@ Includes a widescreen fix, increased shadow resolution, splash screen skip, and 
 
 - The speedometer needle doesn't scale properly when rotating (from my research it appears to be a 3D object of some sort, any info on this would be appreciated as I am stumped >.<)
 - The menus are scaled *too* much with `fix_hud` enabled, resulting in objects that should be fullscreen now only covering a portion of the screen
+- Shadows seem to randomly disappear on some systems (no idea what the contributing factors are here, if I could get reports of this along with some HW info I'd appreciate it ^^)
 
 ## Building
 
