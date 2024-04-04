@@ -1,7 +1,9 @@
 #include <windows.h>
 #include <cmath>
 #include "toml++/toml.hpp"
+
 #include "nya_commonhooklib.h"
+#include "nya_dx8_hookbase.h"
 
 void GetDesktopResolution(int& horizontal, int& vertical) {
 	RECT desktop;
@@ -10,7 +12,7 @@ void GetDesktopResolution(int& horizontal, int& vertical) {
 	vertical = desktop.bottom;
 }
 
-int nResX, nResY, nResX43;
+int nResX43;
 double fDisplayAspect = 0;
 
 void ForceResolution() {
@@ -164,9 +166,110 @@ void __attribute__((naked)) MovieLetterboxASM() {
 	);
 }
 
+const float fSpeedoXOffset = -2.5;
+const float fSpeedoYOffset = -4;
+const float fSpeedoSize = 0.32;
+float fSpeedoRotation = 0;
+void HookLoop() {
+	static auto pTexture = LoadTexture("speedo.png");
+	if (!pTexture) return;
+
+	float fPosX = *(float*)0x904EF0 / (double)nResX;
+	float fPosY = *(float*)0x904EF4 / (double)nResY;
+	float fScaleY = fSpeedoSize;
+	float fScaleX = fScaleY * GetAspectRatioInv();
+	fPosX += fSpeedoXOffset / 640.0;
+	fPosY += fSpeedoYOffset / 640.0;
+	DrawRectangle(fPosX,fPosX + fScaleX,fPosY,fPosY + fScaleY,{255,255, 255, 255}, 0, pTexture, fSpeedoRotation);
+
+	CommonMain();
+}
+
+bool bDeviceJustReset = false;
+void SpeedoCustomDraw() {
+	if (!g_pd3dDevice) {
+		g_pd3dDevice = *(IDirect3DDevice8 **) 0x556A64;
+		InitHookBase();
+	}
+
+	if (bDeviceJustReset) {
+		ImGui_ImplDX8_CreateDeviceObjects();
+		bDeviceJustReset = false;
+	}
+	HookBaseLoop();
+}
+
+void __attribute__((naked)) SpeedoDrawASM() {
+	__asm__ (
+		"pushad\n\t"
+		"call %0\n\t"
+		"popad\n\t"
+		"lea esp, [ebp-0x10]\n\t"
+		"pop edi\n\t"
+		"pop esi\n\t"
+		"pop ecx\n\t"
+		"pop ebx\n\t"
+		"pop ebp\n\t"
+		"ret\n\t"
+			:
+			:  "i" (SpeedoCustomDraw)
+	);
+}
+
+uintptr_t SpeedoGetAngle_RetAddress = 0x4DBCC9;
+void __attribute__((naked)) SpeedoGetAngleASM() {
+	__asm__ (
+		"fstp dword ptr [eax+0x24]\n\t"
+		"push ebx\n\t"
+		"mov ebx, [eax+0x24]\n\t"
+		"mov %0, ebx\n\t"
+		"pop ebx\n\t"
+		"jmp %1\n\t"
+			:
+			:  "m" (fSpeedoRotation), "m" (SpeedoGetAngle_RetAddress)
+	);
+}
+
+auto SpeedoDrawD3DReset_RetAddress = (int(*)())0x40E700;
+int SpeedoDrawD3DReset() {
+	if (g_pd3dDevice) {
+		ImGui_ImplDX8_InvalidateDeviceObjects();
+		bDeviceJustReset = true;
+	}
+	return SpeedoDrawD3DReset_RetAddress();
+}
+
+void __stdcall SetWindowPosPatch(HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags) {
+	SetWindowPos(hWnd, hWndInsertAfter, 0, 0, cx, cy, uFlags);
+}
+
 auto DrawSplashScreen = (void(__stdcall*)(float, float, float, float, void*, int))0x41A440;
 void __stdcall SplashScreenLetterboxPatch(float a1, float a2, float a3, float a4, void* a5, int a6) {
 	DrawSplashScreen(fLetterboxLeft, a2, fLetterboxRight, a4, a5, a6);
+}
+
+int nMultisamplingType = 0;
+auto pD3DMultisamplingType = (int*)0x556A18;
+uintptr_t SetMultisampling_RetAddress = 0x40EA07;
+void __attribute__((naked)) SetMultisamplingASM() {
+	__asm__ (
+			"push eax\n\t"
+			"push ebx\n\t"
+			"mov eax, %0\n\t"
+			"mov ebx, %1\n\t"
+			"mov [ebx], eax\n\t"
+			"pop eax\n\t"
+			"pop ebx\n\t"
+			"test    ebx, ebx\n\t"
+			"setnz   al\n\t"
+			"mov     esi, 1\n\t"
+			"and     eax, 0xFF\n\t"
+			"mov     edi, 0x50\n\t"
+			"add     eax, 2\n\t"
+			"jmp %2\n\t"
+			:
+			:  "m" (nMultisamplingType), "m" (pD3DMultisamplingType), "m" (SetMultisampling_RetAddress)
+			);
 }
 
 BOOL WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
@@ -175,12 +278,16 @@ BOOL WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
 			auto config = toml::parse_file("TIRTweaks_gcp.toml");
 			bool bNoCD = config["main"]["no_cd"].value_or(true);
 			bool bNoVideos = config["main"]["no_videos"].value_or(false);
+			bool bBorderlessWindowed = config["main"]["borderless_windowed"].value_or(false);
 			bool bSkipIntro = config["main"]["skip_intro"].value_or(false);
 			bool bFixScaling = config["main"]["fix_scaling"].value_or(true);
 			bool bHUDPatches = config["main"]["fix_hud"].value_or(false);
 			bool bSplashAndMoviePatches = config["main"]["letterbox_movies"].value_or(true);
+			nMultisamplingType = config["main"]["multisampling"].value_or(0);
 			int nShadowResolution = config["extras"]["shadow_res"].value_or(128);
+			int nReflectionResolution = config["extras"]["reflection_res"].value_or(128);
 			bool bFullSplash = config["extras"]["full_splash"].value_or(false);
+			bool bNoNeedleFix = config["extras"]["no_needle_fix"].value_or(0);
 			nResX = config["extras"]["res_x"].value_or(0);
 			nResY = config["extras"]["res_y"].value_or(0);
 			fDisplayAspect = config["extras"]["aspect_ratio"].value_or(0.0f);
@@ -207,6 +314,16 @@ BOOL WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
 				NyaHookLib::PatchRelative(NyaHookLib::JMP, 0x424607, 0x424691); // skip all videos
 			}
 
+			if (nMultisamplingType > 0) {
+				NyaHookLib::PatchRelative(NyaHookLib::JMP, 0x40E9F0, SetMultisamplingASM);
+			}
+
+			if (bBorderlessWindowed) {
+				NyaHookLib::PatchRelative(NyaHookLib::JMP, 0x44BBCD, 0x44C0ED);
+				NyaHookLib::Patch(0x40EABA + 1, 0x20000);
+				NyaHookLib::PatchRelative(NyaHookLib::CALL, 0x40EBAE, &SetWindowPosPatch);
+			}
+
 			NyaHookLib::PatchRelative(NyaHookLib::JMP, 0x44BA23, &ForceResolutionASM);
 
 			if (bFixScaling) {
@@ -217,6 +334,7 @@ BOOL WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
 			}
 
 			NyaHookLib::Patch(0x4ADF26 + 1, nShadowResolution);
+			NyaHookLib::Patch(0x4ADEFC + 1, nReflectionResolution);
 
 			if (bSkipIntro) {
 				if (!bFullSplash) {
@@ -280,8 +398,18 @@ BOOL WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
 				// position
 				NyaHookLib::PatchRelative(NyaHookLib::CALL, 0x4DAAA5, &ScreenResolutionPatch);
 
+				if (!bNoNeedleFix) {
+					// speedo needle d3d hook, cursed and silly :3
+					NyaHookLib::PatchRelative(NyaHookLib::JMP, 0x4DB9D0, &SpeedoDrawASM);
+					*(uintptr_t *) &SpeedoDrawD3DReset_RetAddress = *(uintptr_t *) 0x40E713;
+					NyaHookLib::Patch(0x40E713, &SpeedoDrawD3DReset);
+					NyaHookLib::PatchRelative(NyaHookLib::JMP, 0x4DBDE7, &SpeedoGetAngleASM);
+
+					// don't draw the vanilla needle
+					NyaHookLib::Patch<uint8_t>(0x42E340, 0xC3);
+				}
+
 				// todo 904E10 array of speedo rpm counters, is this scaled correct?
-				// todo check around 42F178 and 4DBDE7 for needle rotation, seems to be an actual 3d draw
 				// todo for menus: check 0x44087C 0x4412F0 and 0x4451D7
 			}
 		} break;
