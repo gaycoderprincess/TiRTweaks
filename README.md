@@ -20,15 +20,17 @@ Includes a widescreen fix, increased shadow resolution, splash screen skip, and 
 - Fixes the stretched view on aspect ratios other than 4:3
 - Fixes the stretched HUD on aspect ratios other than 4:3 (WIP, unfinished)
 - Adds letterboxing to splash screens and the intro video instead of stretching it
+- Adds borderless windowed support
+- Adds anti-aliasing support
 - Makes the game use the monitor resolution without having to edit syscfg.ini
 - Increases the resolution of car shadows
+- Increases the resolution of reflections
 - Re-enables 2 unused splash screens at startup
 - Disables all background videos (unstable but can fix some crashes and lockups on Wine/Proton)
 - Simple configuration file to enable or disable any of these options at any time
 
 ## Known problems
 
-- The speedometer needle doesn't scale properly when rotating (from my research it appears to be a 3D object of some sort, any info on this would be appreciated as I am stumped >.<)
 - The menus are scaled *too* much with `fix_hud` enabled, resulting in objects that should be fullscreen now only covering a portion of the screen
 - Shadows seem to randomly disappear on some systems (no idea what the contributing factors are here, if I could get reports of this along with some HW info I'd appreciate it ^^)
 
