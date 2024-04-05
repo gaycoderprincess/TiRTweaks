@@ -8,10 +8,15 @@ skip_intro = false		# Skip intros and splash screens
 fix_scaling = true		# Fix stretched view
 fix_hud = true			# Fix stretched hud, WIP, breaks menus
 letterbox_movies = true		# Makes movies and splash screens 4:3 letterboxed instead of stretched
+borderless_windowed = false	# Runs the game in a borderless window, works independently of the built-in windowed option
+multisampling = 0		# Anti-aliasing quality, 0 to disable
 
 [extras]
 res_x = 0			# Horizontal screen resolution, use 0 to autodetect
 res_y = 0			# Vertical screen resolution, use 0 to autodetect
 aspect_ratio = 0		# Screen aspect ratio, represented as the product e.g. 1.77777 for 16:9, use 0 to autodetect
 shadow_res = 1024		# 128x by default
+reflection_res = 1024		# 256x by default
 full_splash = false		# Enable 2 unused extra splash screens on startup
+no_needle_fix = false		# Disables the speedometer needle scaling fix
+show_debug_info = false		# Enables a debug display for some of the mod's features
