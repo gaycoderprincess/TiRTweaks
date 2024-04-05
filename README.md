@@ -31,7 +31,7 @@ Includes a widescreen fix, increased shadow resolution, splash screen skip, and 
 
 ## Known problems
 
-- The menus are scaled *too* much with `fix_hud` enabled, resulting in objects that should be fullscreen now only covering a portion of the screen
+- Some menus are scaled oddly with `fix_hud` enabled
 - Shadows seem to randomly disappear on some systems (no idea what the contributing factors are here, if I could get reports of this along with some HW info I'd appreciate it ^^)
 
 ## Building
