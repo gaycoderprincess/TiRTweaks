@@ -435,6 +435,7 @@ void __stdcall SpriteScaleFunction(const int* pSprite, int* outX, int* outY) {
 	if (spriteX == 640) specialCase = true; // hack for fullscreen sprites to stay fullscreen
 	//if (spriteX == 207 && spriteY == 27) specialCase = true; // vehicle selection bars
 	if (spriteX == 278 && spriteY == 36) specialCase = true; // vehicle selection name bg
+	if (spriteX == 224 && spriteY == 32) specialCase = true; // controller mappings, todo this is still stretched but removing this misaligns it
 	if (spriteX == 544 && spriteY == 32) specialCase = true; // controller mappings, todo this is still stretched but removing this misaligns it
 	if (spriteX == 406 && spriteY == 480) specialCase = true; // some menu backgrounds
 	if (spriteX == 272 && spriteY == 50) specialCase = true; // car/challenge select icon bg
