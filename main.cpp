@@ -231,8 +231,15 @@ void FOVScalingFix() {
 		return;
 	}
 
+	double aspect = fDisplayAspect;
+
+	// adjust ratio for splitscreen mode, todo only do this when in-game
+	if (*(int*)0x8897E0 >= 2) {
+		aspect *= 2;
+	}
+
 	double fOrigAspect = 3.0 / 4.0;
-	double fNewAspect = 1.0 / fDisplayAspect;
+	double fNewAspect = 1.0 / aspect;
 	double fMultipliedAspect = fOrigAspect / fNewAspect;
 
 	pFOV->fFOVX = atan2(tan(fov * 0.5) * fMultipliedAspect, 1.0) * 2.0;
