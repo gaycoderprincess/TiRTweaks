@@ -318,6 +318,8 @@ const float fSpeedoYOffset = -4;
 const float fSpeedoSize = 0.32;
 float fSpeedoRotation = 0;
 void DrawSpeedoNeedle() {
+	if (!*(bool *) 0x533FC4) return;
+
 	static auto pTexture = LoadTexture("speedo.png");
 	if (!pTexture) return;
 
