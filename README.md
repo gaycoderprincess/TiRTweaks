@@ -38,7 +38,7 @@ Includes a widescreen fix, increased shadow resolution, splash screen skip, and 
 
 Building is done on an Arch Linux system with CLion and vcpkg being used for the build process. 
 
-Before you begin, clone nya-common to a folder next to this one, so it can be found.
+Before you begin, clone [nya-common](https://github.com/gaycoderprincess/nya-common) to a folder next to this one, so it can be found.
 
 Required packages: `mingw-w64-gcc vcpkg`
 
