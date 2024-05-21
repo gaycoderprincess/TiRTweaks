@@ -484,6 +484,10 @@ void __stdcall DebugDisplayPatch(int a1) {
 	DebugDisplay_RetAddress(a1);
 }
 
+int __stdcall DrawDistanceLODPatch(int a1) {
+	return 0;
+}
+
 BOOL WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
 	switch( fdwReason ) {
 		case DLL_PROCESS_ATTACH: {
@@ -500,6 +504,7 @@ BOOL WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
 			int nReflectionResolution = config["extras"]["reflection_res"].value_or(128);
 			bool bFullSplash = config["extras"]["full_splash"].value_or(false);
 			bool bNoNeedleFix = config["extras"]["no_needle_fix"].value_or(0);
+			bool bIncreasedDrawDistance = config["extras"]["high_draw_distance"].value_or(true);
 			nResX = config["extras"]["res_x"].value_or(0);
 			nResY = config["extras"]["res_y"].value_or(0);
 			fDisplayAspect = config["extras"]["aspect_ratio"].value_or(0.0f);
@@ -525,6 +530,19 @@ BOOL WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
 				NyaHookLib::PatchRelative(NyaHookLib::JMP, 0x44BA69, 0x44BA7B); // :3
 			}
 
+			if (bIncreasedDrawDistance) {
+				// increase draw list size, just in case :3
+				auto global_scene_slot_array = new uint8_t[16383 << 6];
+				NyaHookLib::Patch(0x42E1BE + 1, global_scene_slot_array);
+				NyaHookLib::Patch(0x42E1A7 + 2, 16383);
+
+				NyaHookLib::PatchRelative(NyaHookLib::JMP, 0x429AF0, &DrawDistanceLODPatch); // get_scene_approximation_number, for LODs
+
+				// remove insert_object_into_3d_scene draw distance cutoffs
+				NyaHookLib::Patch<uint16_t>(0x42E308, 0x9090);
+				NyaHookLib::Patch<uint8_t>(0x42E2E6, 0xEB);
+			}
+
 			if (bNoVideos) {
 				NyaHookLib::PatchRelative(NyaHookLib::JMP, 0x44BC3E, 0x44BC58); // no intro
 				NyaHookLib::PatchRelative(NyaHookLib::JMP, 0x4B104D, 0x4B1060); // no background videos
@@ -532,7 +550,7 @@ BOOL WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
 			}
 
 			if (nMultisamplingType > 0) {
-				NyaHookLib::PatchRelative(NyaHookLib::JMP, 0x40E9F0, SetMultisamplingASM);
+				NyaHookLib::PatchRelative(NyaHookLib::JMP, 0x40E9F0, &SetMultisamplingASM);
 			}
 
 			if (bBorderlessWindowed) {
