@@ -25,6 +25,7 @@ Includes a widescreen fix, increased shadow resolution, splash screen skip, and 
 - Makes the game use the monitor resolution without having to edit syscfg.ini
 - Increases the resolution of car shadows
 - Increases the resolution of reflections
+- Increases the game's draw distance
 - Re-enables 2 unused splash screens at startup
 - Disables all background videos (unstable but can fix some crashes and lockups on Wine/Proton)
 - Simple configuration file to enable or disable any of these options at any time
