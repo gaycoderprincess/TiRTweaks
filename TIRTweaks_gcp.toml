@@ -17,6 +17,7 @@ res_y = 0			# Vertical screen resolution, use 0 to autodetect
 aspect_ratio = 0		# Screen aspect ratio, represented as the product e.g. 1.77777 for 16:9, use 0 to autodetect
 shadow_res = 1024		# 128x by default
 reflection_res = 1024		# 256x by default
+high_draw_distance = true	# Increases the draw distance for vehicles and map objects
 full_splash = false		# Enable 2 unused extra splash screens on startup
 no_needle_fix = false		# Disables the speedometer needle scaling fix
 show_debug_info = false		# Enables a debug display for some of the mod's features
