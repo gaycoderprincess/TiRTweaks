@@ -8,6 +8,7 @@ skip_intro = false		# Skip intros and splash screens
 fix_scaling = true		# Fix stretched view
 fix_hud = true			# Fix stretched hud, WIP, breaks menus
 letterbox_movies = true		# Makes movies and splash screens 4:3 letterboxed instead of stretched
+windowed = false		# Runs the game in windowed mode, make sure to change res_x and res_y first!
 borderless_windowed = false	# Runs the game in a borderless window, works independently of the built-in windowed option
 multisampling = 0		# Anti-aliasing quality, 0 to disable
 
