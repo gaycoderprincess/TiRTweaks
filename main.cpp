@@ -7,7 +7,7 @@
 
 double fDisplayAspect = 0;
 double fSelectedDisplayAspect = 0;
-bool bBorderlessWindowed = false;
+bool bWindowed = false;
 
 enum eDebugMode {
 	DEBUG_MODE_NONE,
@@ -196,7 +196,7 @@ int nResX43;
 void ForceResolution() {
 	*(int*)0x5569F0 = nResX;
 	*(int*)0x5569F4 = nResY;
-	if (bBorderlessWindowed) *(int*)0x5569F8 = 0;
+	if (bWindowed) *(int*)0x5569F8 = 0;
 }
 
 void __attribute__((naked)) ForceResolutionASM() {
@@ -406,6 +406,11 @@ void __stdcall SetWindowPosPatch(HWND hWnd, HWND hWndInsertAfter, int X, int Y, 
 	SetWindowPos(hWnd, hWndInsertAfter, 0, 0, cx, cy, uFlags);
 }
 
+void __stdcall SetWindowPosWindowedPatch(HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags) {
+	SetWindowLongA(hWnd, GWL_STYLE, GetWindowLong(hWnd, GWL_STYLE) & ~WS_SIZEBOX);
+	SetWindowPos(hWnd, hWndInsertAfter, X, Y, cx, cy, uFlags);
+}
+
 auto DrawSplashScreen = (void(__stdcall*)(float, float, float, float, void*, int))0x41A440;
 void __stdcall SplashScreenLetterboxPatch(float a1, float a2, float a3, float a4, void* a5, int a6) {
 	DrawSplashScreen(fLetterboxLeft, a2, fLetterboxRight, a4, a5, a6);
@@ -491,10 +496,16 @@ int __stdcall DrawDistanceLODPatch(int a1) {
 BOOL WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
 	switch( fdwReason ) {
 		case DLL_PROCESS_ATTACH: {
+			if (NyaHookLib::GetEntryPoint() != 0xEF6C2) {
+				MessageBoxA(nullptr, "Unsupported game version! Make sure you're using Nestle Edition v1.3 (.exe size of 1366016 bytes)", "nya?!~", MB_ICONERROR);
+				return TRUE;
+			}
+
 			auto config = toml::parse_file("TIRTweaks_gcp.toml");
 			bool bNoCD = config["main"]["no_cd"].value_or(true);
 			bool bNoVideos = config["main"]["no_videos"].value_or(false);
-			bBorderlessWindowed = config["main"]["borderless_windowed"].value_or(false);
+			bWindowed = config["main"]["windowed"].value_or(false);
+			bool bBorderlessWindowed = config["main"]["borderless_windowed"].value_or(false);
 			bool bSkipIntro = config["main"]["skip_intro"].value_or(false);
 			bool bFixScaling = config["main"]["fix_scaling"].value_or(true);
 			bool bHUDPatches = config["main"]["fix_hud"].value_or(false);
@@ -556,6 +567,10 @@ BOOL WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
 			if (bBorderlessWindowed) {
 				NyaHookLib::Patch(0x40EABA + 1, 0x20000);
 				NyaHookLib::PatchRelative(NyaHookLib::CALL, 0x40EBAE, &SetWindowPosPatch);
+				bWindowed = true;
+			}
+			else if (bWindowed) {
+				NyaHookLib::PatchRelative(NyaHookLib::CALL, 0x40EBAE, &SetWindowPosWindowedPatch);
 			}
 
 			NyaHookLib::PatchRelative(NyaHookLib::JMP, 0x44BA23, &ForceResolutionASM);
